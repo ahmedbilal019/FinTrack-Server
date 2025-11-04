@@ -7,10 +7,10 @@ import {
   addIncome,
   getIncomesByUser,
 } from '../controllers/income.controller.js';
-
 import { registerUser, login } from '../controllers/auth.js';
 import express from 'express';
 import { AuthenticateUser } from '../middleware/authmiddleware.js';
+import { addTransaction, getTransactionsByUser } from '../controllers/transaction.controller.js';
 const router = express.Router();
 router.post('/auth/register', registerUser);
 router.post('/auth/login', login);
@@ -34,5 +34,7 @@ router.get('/users/:user_id/balances', AuthenticateUser, getBalancesByUser);
 router.post('/users/:user_id/balances/add', AuthenticateUser, postBalance);
 router.get('/users/:user_id/incomes', AuthenticateUser, getIncomesByUser);
 router.post('/users/:user_id/incomes/add', AuthenticateUser, addIncome);
+router.get('/users/:user_id/transactions', AuthenticateUser, getTransactionsByUser);
+router.post('/users/:user_id/transactions/add', AuthenticateUser, addTransaction);
 
 export default router;
