@@ -1,4 +1,4 @@
-import { getAllUsers } from '../controllers/user.controller.js';
+import { getAllUsers, resetDataFromTransactionandBalance } from '../controllers/user.controller.js';
 import { getBalancesByUser } from '../controllers/balance.controller.js';
 
 import { registerUser, login } from '../controllers/auth.js';
@@ -29,12 +29,8 @@ router.get('/auth/verify', AuthenticateUser, (req, res) => {
 // User Routes Protected by Authentication Middleware
 // TODO:Delete User based on ROLE
 router.get('/users', AuthenticateUser, getAllUsers);
-// router.post('/users/add', AuthenticateUser, postUser);
-
 router.get('/users/:user_id/balances', AuthenticateUser, getBalancesByUser);
-// router.get('/users/:user_id/incomes', AuthenticateUser, getIncomesByUser);
-// router.post('/users/:user_id/incomes/add', AuthenticateUser, addIncome);
-
+router.get('/users/reset/:user_id', AuthenticateUser, resetDataFromTransactionandBalance);
 
 // Transaction Routes
 router.get(
