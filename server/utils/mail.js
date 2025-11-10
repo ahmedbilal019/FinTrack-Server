@@ -1,8 +1,6 @@
-import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
 dotenv.config();
-
-
 
 export const sendLoginElert = async (recieverEmail) => {
   try {
@@ -10,8 +8,9 @@ export const sendLoginElert = async (recieverEmail) => {
     const mailOptions = {
       from: process.env.GMAIL_EMAIL,
       to: recieverEmail,
-      subject: 'New Login Alert',
-      text: `A new login to your account was detected. If this was not you, please secure your account immediately.`,
+      subject: "New Login Alert",
+      text: `A new login to your account was detected.
+       If this was not you, please secure your account immediately.`,
     };
     await transporter.sendMail(mailOptions);
     console.log(`Login alert sent to ${recieverEmail}`);
@@ -22,10 +21,11 @@ export const sendLoginElert = async (recieverEmail) => {
 
 const mailTransporter = () => {
   return nodemailer.createTransport({
-    service: 'gmail',
+    service: "gmail",
     auth: {
       user: process.env.GMAIL_EMAIL,
       pass: process.env.GMAIL_PASS,
     },
+    
   });
 };
