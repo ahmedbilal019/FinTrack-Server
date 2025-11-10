@@ -16,6 +16,8 @@ import {
   getTransactionsByUser,
   updateTransaction,
 } from '../controllers/transaction.controller.js';
+import { get } from 'mongoose';
+import { getTransactionByMonth } from '../controllers/reports.controller.js';
 const router = express.Router();
 router.post('/auth/register', registerUser);
 router.post('/auth/login', login);
@@ -47,7 +49,16 @@ router.get(
   getTransactionsByUser
 );
 router.post('/users/transactions/add', AuthenticateUser, addTransaction);
-router.delete('/users/transactions/delete/:transaction_id', AuthenticateUser, deleteTransaction);
-router.put('/users/transactions/update/:transaction_id', AuthenticateUser, updateTransaction);
+router.delete(
+  '/users/transactions/delete/:transaction_id',
+  AuthenticateUser,
+  deleteTransaction
+);
+router.put(
+  '/users/transactions/update/:transaction_id',
+  AuthenticateUser,
+  updateTransaction
+);
+router.get('/users/reports/transactions/:user_id/:monthsNumber', AuthenticateUser, getTransactionByMonth);
 
 export default router;
