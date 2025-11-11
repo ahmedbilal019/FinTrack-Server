@@ -123,16 +123,54 @@ export const updateTransaction = async (req, res) => {
     if (!date || !amount || !type || !category || !source) {
       return res.status(400).json({ message: "All fields are required" });
     }
+    //
+    const oldTransaction = await transactionModel.findById(transaction_id);
+    if (!oldTransaction) {
+      return res.status(404).json({ message: "Transaction not found" });
+    }
+
+    // 🔹 Step 2: Find the balance of the OLD source
+    const oldBalance = await balanceModel.findOne({
+      user_id: oldTransaction.user_id,
+      balanceType: oldTransaction.source,
+    });
+    if (oldBalance) {
+      oldBalance.amount =
+        oldTransaction.type === "income"
+          ? oldBalance.amount - oldTransaction.amount // remove previous income
+          : oldBalance.amount + oldTransaction.amount; // refund previous expense
+
+      await oldBalance.save();
+    }
+
+    //
 
     const updatedTransaction = await transactionModel.findByIdAndUpdate(
       transaction_id,
       { date, amount, type, category, source },
       { new: true }
     );
+    //
+    const newBalance = await balanceModel.findOne({
+      user_id: updatedTransaction.user_id,
+      balanceType: updatedTransaction.source,
+    });
 
+    // 🔹 Step 6: APPLY the new transaction’s effect
+    if (newBalance) {
+      newBalance.amount =
+        updatedTransaction.type === "income"
+          ? newBalance.amount + updatedTransaction.amount // add new income
+          : newBalance.amount - updatedTransaction.amount; // deduct new expense
+
+      await newBalance.save();
+    }
+    //
     res.status(200).json({
       message: "Transaction updated successfully",
       transaction: updatedTransaction,
+      updatedBalance: newBalance,
+      oldTransaction: oldTransaction,
     });
   } catch (error) {
     res.status(500).json({ message: "Error updating transaction", error });
