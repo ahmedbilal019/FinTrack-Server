@@ -102,7 +102,7 @@ const login = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
-    await sendLoginElert(email);
+    // await sendLoginElert(email);
     return res.status(201).json({
       message: "Login successful",
       success: true,
