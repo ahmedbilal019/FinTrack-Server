@@ -55,14 +55,26 @@ const updateUser = async (req, res) => {
   // Implementation for updating a user's currency preference
   try {
     let { id } = req.params;
-    let { email, password, currentPassword, currency } = req.body;
+    let { name, email, password, currentPassword, currency } = req.body;
     let updatedFields = {};
-    
-    if (email !== '') {
+    const user = await userModel.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found',
+        success: false,
+      });
+    }
+    if (name !== user.name && name !== '') {
+      updatedFields.name = name;
+    }
+
+    if (email !== user.email && email !== '') {
       updatedFields.email = email;
     }
+    if (currency !== user.currency && currency !== '') {
+      updatedFields.currency = currency;
+    }
     if (password !== '') {
-      const user = await userModel.findById(id);
       const isMatch = await bcrypt.compare(currentPassword, user.password);
       if (!isMatch) {
         return res.status(401).json({
@@ -73,25 +85,25 @@ const updateUser = async (req, res) => {
       const hashedPassword = await bcrypt.hash(password, 10);
       updatedFields.password = hashedPassword;
     }
-    if (currency !== '') {
-      updatedFields.currency = currency;
-    }
+
     let updatedUser = await userModel.findByIdAndUpdate(id, updatedFields, {
       new: true,
     });
-
     if (!updatedUser) {
       return res.status(404).json({
         message: 'User not found',
         success: false,
       });
     }
-
+    await updatedUser.save();
+    // how do i remove the password from the response
+    updatedUser.password = undefined;
     return res.status(200).json({
       message: 'User updated successfully',
       success: true,
       user: updatedUser,
     });
+
   } catch (error) {
     return res.status(500).json({
       message: 'Error updating user',
