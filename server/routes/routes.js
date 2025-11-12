@@ -17,6 +17,7 @@ import {
 import {
   getBalanceOverTime,
   getTransactionReport,
+  getBalanceDebug,
 } from '../controllers/reports.controller.js';
 const router = express.Router();
 router.post('/auth/register', registerUser);
@@ -76,6 +77,11 @@ router.get(
   '/users/reports/balances/:user_id/:monthsNumber',
   AuthenticateUser,
   getBalanceOverTime
+);
+router.get(
+  '/users/reports/balances/debug/:user_id/:monthsNumber',
+  AuthenticateUser,
+  getBalanceDebug
 );
 
 // router.get(
