@@ -15,7 +15,7 @@ import {
   updateTransaction,
 } from '../controllers/transaction.controller.js';
 import {
-  getBalanceOverTime,
+  getBankBalanceOverTime,
   getTransactionReport,
   getBalanceDebug,
 } from '../controllers/reports.controller.js';
@@ -76,7 +76,7 @@ router.get(
 router.get(
   '/users/reports/balances/:user_id/:monthsNumber',
   AuthenticateUser,
-  getBalanceOverTime
+  getBankBalanceOverTime
 );
 router.get(
   '/users/reports/balances/debug/:user_id/:monthsNumber',
