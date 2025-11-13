@@ -1,13 +1,13 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 let balanceSchema = mongoose.Schema({
   user_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "user",
+    ref: 'user',
   },
   trans_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "transaction",
+    ref: 'transaction',
   },
   amount: {
     type: Number,
@@ -16,13 +16,13 @@ let balanceSchema = mongoose.Schema({
   balanceType: {
     type: String,
     required: true,
-    enum: ["bank", "wallet"],
+    enum: ['bank', 'wallet'],
   },
   date: {
-    type: String,
+    type: Date,
     required: true,
   },
 });
 
-const balanceModel = mongoose.model("balance", balanceSchema);
+const balanceModel = mongoose.model('balance', balanceSchema);
 export default balanceModel;
