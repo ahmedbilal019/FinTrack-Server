@@ -14,7 +14,7 @@ export const getBankBalanceOverTime = async (req, res) => {
       .sort({ date: -1 })
       .limit(parseInt(maxLimit)); // Sort by date ascending
 
-    console.log(`Found ${balances} balance entries`);
+    // console.log(`Found ${balances} balance entries`);
     if (!balances || balances.length === 0) {
       return res.status(404).json({
         message: 'No balance data found for the specified period',
@@ -24,17 +24,30 @@ export const getBankBalanceOverTime = async (req, res) => {
     // labels should be in MM-DD format
     const labels = balances.map((b) => {
       const transactionDate = new Date(b.date);
-      console.log('Transaction Date:', b.date);
+      // console.log('Transaction Date:', b.date);
 
       return `${transactionDate.toLocaleString('default', {
         month: 'short',
       })}-${transactionDate.getDate()}`;
     });
+    labels.reverse();
     const data = balances.map((b) => b.amount);
+    data.reverse();
+    // aggregate same day values into one date only
+    const aggregatedData = {};
+    labels.forEach((label, index) => {
+      if (!aggregatedData[label]) {
+        aggregatedData[label] = 0;
+      }
+      aggregatedData[label] = data[index];
+    });
+
     res.status(200).json({
       success: true,
-      labels,
-      data,
+      date: Object.keys(aggregatedData),
+      balance: Object.values(aggregatedData),
+      // labels: labels,
+      // data: data,
     });
   } catch (error) {
     console.error('Error in getBalanceOverTime:', error);

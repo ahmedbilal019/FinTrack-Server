@@ -80,10 +80,12 @@ export const addTransaction = async (req, res) => {
       let currentAmount = precedingBalance ? precedingBalance.amount : 0;
       for (const tx of precedingTransactions.reverse()) {
         // Calculate new balance
+
         let updatedAmount =
           tx.type === 'income'
             ? currentAmount + tx.amount
             : currentAmount - tx.amount;
+        console.log('Current Amount : ', currentAmount);
         currentAmount = updatedAmount;
         // Add New balance entry
         const transactionBalance = new balanceModel({
@@ -96,6 +98,7 @@ export const addTransaction = async (req, res) => {
         await transactionBalance.save();
 
         console.log('Updated balance for transaction:', updatedAmount);
+        console.log('Transaction Amount:', tx.amount);
       }
     }
     // Calculate new balance
