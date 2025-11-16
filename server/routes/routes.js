@@ -7,7 +7,7 @@ import { getBalancesByUser } from '../controllers/balance.controller.js';
 
 import { registerUser, login } from '../controllers/auth.js';
 import express from 'express';
-import { AuthenticateUser } from '../middleware/authmiddleware.js';
+import { AuthenticateUser, isAdminAuth } from '../middleware/authmiddleware.js';
 import {
   addTransaction,
   deleteTransaction,
@@ -17,8 +17,15 @@ import {
 import {
   getBankBalanceOverTime,
   getTransactionReport,
-
 } from '../controllers/reports.controller.js';
+import {
+  getAllUsersAdmin,
+  getUserById,
+  updateUserRole,
+  deleteUser,
+  getAppStats,
+} from '../controllers/admin.controller.js';
+
 const router = express.Router();
 router.post('/auth/register', registerUser);
 router.post('/auth/login', login);
@@ -34,8 +41,14 @@ router.get('/auth/verify', AuthenticateUser, (req, res) => {
   });
 });
 
+// Admin Routes (add these to your existing routes)
+router.get('/admin/users', isAdmin, getAllUsers);
+router.get('/admin/users/:userId', isAdmin, getUserById);
+router.put('/admin/users/:userId/role', isAdmin, updateUserRole);
+router.delete('/admin/users/:userId', isAdmin, deleteUser);
+router.get('/admin/stats', isAdmin, getAppStats);
+
 // User Routes Protected by Authentication Middleware
-// TODO:Delete User based on ROLE
 router.get('/users', AuthenticateUser, getAllUsers);
 router.get('/users/:user_id/balances', AuthenticateUser, getBalancesByUser);
 router.get(
@@ -78,7 +91,6 @@ router.get(
   AuthenticateUser,
   getBankBalanceOverTime
 );
-
 
 // router.get(
 //   '/users/reports/transactions/current/:user_id',

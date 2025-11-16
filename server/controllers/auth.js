@@ -1,22 +1,22 @@
-import userModel from "../models/user.model.js";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-import { sendLoginElert } from "../utils/mail.js";
+import userModel from '../models/user.model.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+import { sendLoginElert } from '../utils/mail.js';
 dotenv.config();
 
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password  } = req.body;
     // Validation
     if (!name || !email || !password) {
       return res
         .status(400)
-        .json({ message: "All fields are required", success: false });
+        .json({ message: 'All fields are required', success: false });
     }
     if (password.length < 6) {
       return res.status(400).json({
-        message: "Password must be at least 6 characters long",
+        message: 'Password must be at least 6 characters long',
         success: false,
       });
     }
@@ -26,7 +26,7 @@ const registerUser = async (req, res) => {
     if (existingUser) {
       return res
         .status(400)
-        .json({ message: "User already exists", success: false });
+        .json({ message: 'User already exists', success: false });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -39,13 +39,14 @@ const registerUser = async (req, res) => {
         name: newUser.name,
         email: newUser.email,
         currency: newUser.currency,
+        isAdmin: newUser.isAdmin,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: '1h' }
     );
     // await sendLoginElert(email);
     return res.status(201).json({
-      message: "User registered successfully",
+      message: 'User registered successfully',
       success: true,
       token,
       user: {
@@ -53,11 +54,12 @@ const registerUser = async (req, res) => {
         name: newUser.name,
         email: newUser.email,
         currency: newUser.currency,
+        isAdmin: newUser.isAdmin,
       },
     });
   } catch (error) {
     return res.status(500).json({
-      message: "Error registering user",
+      message: 'Error registering user',
       success: false,
       error: error.message,
     });
@@ -70,7 +72,7 @@ const login = async (req, res) => {
     // Validation
     if (!email || !password) {
       return res.status(400).json({
-        message: "All fields are required",
+        message: 'All fields are required',
         success: false,
       });
     }
@@ -78,7 +80,7 @@ const login = async (req, res) => {
     const user = await userModel.findOne({ email });
     if (!user) {
       return res.status(400).json({
-        message: "Invalid email or password",
+        message: 'Invalid email or password',
         success: false,
       });
     }
@@ -86,7 +88,7 @@ const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({
-        message: "Invalid email or password",
+        message: 'Invalid email or password',
         success: false,
       });
     }
@@ -98,25 +100,27 @@ const login = async (req, res) => {
         name: user.name,
         email: user.email,
         currency: user.currency,
+        isAdmin: user.isAdmin,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: '1h' }
     );
     // await sendLoginElert(email);
     return res.status(201).json({
-      message: "Login successful",
+      message: 'Login successful',
       success: true,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
         currency: user.currency,
+        isAdmin: user.isAdmin,
       },
       token: token,
     });
   } catch (error) {
     return res.status(500).json({
-      message: "Error logging in user",
+      message: 'Error logging in user',
       success: false,
       error: error.message,
     });
