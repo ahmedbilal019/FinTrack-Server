@@ -7,7 +7,7 @@ export const addTransaction = async (req, res) => {
     if (!user_id || !type || !category || !amount || !date || !source) {
       return res.status(400).json({ message: 'All fields are required' });
     }
-    // Normalize and validate input fields
+    // validate input fields
     type = type.toLowerCase();
     category = category.toLowerCase();
     amount = parseFloat(amount);
@@ -26,86 +26,42 @@ export const addTransaction = async (req, res) => {
     });
 
     await newTransaction.save();
-    // -------------------------------//
-
-    let precedingTransactions = await transactionModel
-      .find({
+    // Update balance
+    const previousBalanceEntry = await balanceModel
+      .findOne({
         user_id,
-        source: source,
-        date: { $gte: new Date(date).toISOString() },
+        balanceType: source,
+        date: { $lte: new Date(date).toISOString() },
       })
       .sort({ date: -1 });
-    console.log('Preceding Transactions:', precedingTransactions);
+    let newBalanceAmount = previousBalanceEntry
+      ? previousBalanceEntry.amount
+      : 0;
 
-    if (precedingTransactions.length === 1) {
-      let precedingBalance = await balanceModel
-        .findOne({
-          user_id,
-          balanceType: source,
-        })
-        .sort({ date: -1 });
+    newBalanceAmount =
+      type === 'income' ? newBalanceAmount + amount : newBalanceAmount - amount;
 
-      console.log('Preceding Balance: ', precedingBalance);
-      let currentAmount = precedingBalance ? precedingBalance.amount : 0;
-      // Calculate new balance
-      let updatedAmount =
-        type === 'income' ? currentAmount + amount : currentAmount - amount;
-      console.log('Updated Ammount : ', updatedAmount);
-      // Add New balance entry
-      const transactionBalance = new balanceModel({
+    await balanceModel.create({
+      user_id,
+      trans_id: newTransaction._id,
+      balanceType: source,
+      amount: newBalanceAmount,
+      date: new Date(date).toISOString(),
+    });
+    await balanceModel.updateMany(
+      {
         user_id,
-        trans_id: newTransaction._id,
         balanceType: source,
-        amount: updatedAmount,
-        date: new Date(date).toISOString(),
-      });
-      await transactionBalance.save();
-    } else {
-      // There are subsequent transactions, need to update their balances
-      // First delete the existing balances for these transactions
-      // Create new balance entries starting from the preceding balance
-      let balanceAfterDate = await balanceModel
-        .deleteMany({
-          user_id,
-          balanceType: source,
-          date: { $gte: date },
-        })
-        .sort({ date: -1 });
-      let precedingBalance = await balanceModel
-        .findOne({
-          user_id,
-          balanceType: source,
-        })
-        .sort({ date: -1 });
-      let currentAmount = precedingBalance ? precedingBalance.amount : 0;
-      for (const tx of precedingTransactions.reverse()) {
-        // Calculate new balance
-
-        let updatedAmount =
-          tx.type === 'income'
-            ? currentAmount + tx.amount
-            : currentAmount - tx.amount;
-        console.log('Current Amount : ', currentAmount);
-        currentAmount = updatedAmount;
-        // Add New balance entry
-        const transactionBalance = new balanceModel({
-          user_id,
-          trans_id: tx._id,
-          balanceType: source,
-          amount: updatedAmount,
-          date: tx.date,
-        });
-        await transactionBalance.save();
-
-        console.log('Updated balance for transaction:', updatedAmount);
-        console.log('Transaction Amount:', tx.amount);
+        date: { $gt: new Date(date).toISOString() },
+      },
+      {
+        $inc: { amount: newBalanceAmount },
       }
-    }
-    // Calculate new balance
+    );
     res.status(200).json({
-      success: true,
       message: 'Transaction added successfully',
       transaction: newTransaction,
+      success: true,
     });
   } catch (error) {
     res.status(500).json({ message: 'Error adding transaction', error });
@@ -136,79 +92,28 @@ export const deleteTransaction = async (req, res) => {
     if (!deletedTransaction) {
       return res.status(404).json({ message: 'Transaction not found' });
     }
+    const impact =
+      deletedTransaction.type === 'income'
+        ? -deletedTransaction.amount
+        : deletedTransaction.amount;
 
-    // Find the balance entry for this specific transaction
-    let precedingTransactions = await transactionModel
-      .find({
+    await balanceModel.findOneAndDelete({ trans_id: deletedTransaction._id });
+    // Update balances after deletion
+    await balanceModel.updateMany(
+      {
         user_id,
-        source: deletedTransaction.source,
+        balanceType: deletedTransaction.source,
         date: { $gte: deletedTransaction.date },
-      })
-      .sort({ date: -1 });
-    console.log('Preceding Transactions:', precedingTransactions);
-    let deleteBalance = await balanceModel.deleteMany({
-      user_id,
-      trans_id: deletedTransaction._id,
-    });
-
-    console.log('Deleted Balance: ', deleteBalance);
-    if (precedingTransactions.length === 0) {
-      return res.status(200).json({
-        message: 'Transaction deleted successfully',
-        transaction: deletedTransaction,
-        updatedBalances: deleteBalance,
-      });
-    } else {
-      // There are subsequent transactions, need to update their balances
-      // First delete the existing balances for these transactions
-      // Create new balance entries starting from the preceding balance
-      let balanceAfterDate = await balanceModel.deleteMany({
-        user_id,
-        trans_id: { $in: precedingTransactions.map((tx) => tx._id) },
-      });
-      console.log('Deleted balances after date:', balanceAfterDate);
-
-      // Create new balance entries starting from the preceding balance
-      let precedingBalance = await balanceModel
-        .findOne({
-          user_id,
-          balanceType: deletedTransaction.source,
-        })
-        .sort({ date: -1 });
-      console.log('Preceding Balance: ', precedingBalance);
-
-      let currentAmount = precedingBalance ? precedingBalance.amount : 0;
-      for (const tx of precedingTransactions.reverse()) {
-        // Calculate new balance
-
-        let updatedAmount =
-          tx.type === 'income'
-            ? currentAmount + tx.amount
-            : currentAmount - tx.amount;
-        currentAmount = updatedAmount;
-        // Add New balance entry
-        const transactionBalance = new balanceModel({
-          user_id,
-          trans_id: tx._id,
-          balanceType: tx.source,
-          amount: updatedAmount,
-          date: tx.date,
-        });
-        await transactionBalance.save();
-
-        console.log(
-          'Updated balance for transaction:',
-          updatedAmount,
-          ' Transaction Amount:',
-          tx.amount
-        );
+      },
+      {
+        $inc: { amount: impact },
       }
-      res.status(200).json({
-        message: 'Transaction deleted successfully - balances updated',
-        transaction: deletedTransaction,
-        success: true,
-      });
-    }
+    );
+
+    res.status(200).json({
+      message: 'Transaction deleted successfully',
+      success: true,
+    });
   } catch (error) {
     console.error('Error in deleteTransaction:', error);
     res.status(500).json({
@@ -247,7 +152,24 @@ export const updateTransaction = async (req, res) => {
 
     console.log('Original transaction:', oldTransaction);
 
-    // Update the transaction first
+    const oldImpact =
+      oldTransaction.type === 'income'
+        ? oldTransaction.amount
+        : -oldTransaction.amount;
+
+    // Delete old balance
+    await balanceModel.findOneAndDelete({ trans_id: transaction_id });
+    // then update balances
+    await balanceModel.updateMany(
+      {
+        user_id: oldTransaction.user_id,
+        balanceType: oldTransaction.source,
+        date: { $gt: oldTransaction.date },
+      },
+      { $inc: { amount: -oldImpact } }
+    );
+
+    //update transaction
     const updatedTransaction = await transactionModel.findByIdAndUpdate(
       transaction_id,
       {
@@ -260,88 +182,41 @@ export const updateTransaction = async (req, res) => {
       { new: true }
     );
 
-    // Determine the earliest date that needs balance recalculation
-    const earliestDate = new Date(
-      Math.min(
-        new Date(oldTransaction.date).getTime(),
-        new Date(date).getTime()
-      )
-    ).toISOString();
+    // new balances
+    const newImpact = type === 'income' ? amount : -amount;
+    const newDateISO = new Date(date).toISOString();
+    // fetch recent balance
+    const previousBalanceEntry = await balanceModel
+      .findOne({
+        user_id: updatedTransaction.user_id,
+        balanceType: source,
+        date: { $lte: newDateISO },
+      })
+      .sort({ date: -1 });
 
-    // Handle source changes - need to recalculate both old and new sources
-    const sourcesToUpdate =
-      source !== oldTransaction.source
-        ? [oldTransaction.source, source]
-        : [source];
+    const previousAmount = previousBalanceEntry
+      ? previousBalanceEntry.amount
+      : 0;
+    const newEntryAmount = parseFloat((previousAmount + newImpact).toFixed(2));
 
-    for (const balanceType of sourcesToUpdate) {
-      // Find all transactions from the earliest affected date for this source
-      const precedingTransactions = await transactionModel
-        .find({
-          user_id: oldTransaction.user_id,
-          source: balanceType,
-          date: { $gte: earliestDate },
-        })
-        .sort({ date: 1 }); // Sort ascending for chronological processing
+    // Create the new balance entry
+    await balanceModel.create({
+      user_id: updatedTransaction.user_id,
+      trans_id: updatedTransaction._id,
+      balanceType: source,
+      amount: newEntryAmount,
+      date: newDateISO,
+    });
 
-      console.log(
-        `Preceding Transactions for ${balanceType}:`,
-        precedingTransactions.length
-      );
-
-      if (precedingTransactions.length > 0) {
-        // Delete existing balance entries for these transactions
-        const deleteResult = await balanceModel.deleteMany({
-          user_id: oldTransaction.user_id,
-          balanceType: balanceType,
-          date: { $gte: earliestDate },
-        });
-
-        console.log(
-          `Deleted ${deleteResult.deletedCount} balance entries for ${balanceType}`
-        );
-
-        // Get the preceding balance (before the earliest date)
-        const precedingBalance = await balanceModel
-          .findOne({
-            user_id: oldTransaction.user_id,
-            balanceType: balanceType,
-            date: { $lt: earliestDate },
-          })
-          .sort({ date: -1 });
-
-        console.log(`Preceding Balance for ${balanceType}:`, precedingBalance);
-
-        let currentAmount = precedingBalance ? precedingBalance.amount : 0;
-
-        // Recreate balance entries in chronological order
-        for (const tx of precedingTransactions) {
-          // Calculate new balance
-          let updatedAmount =
-            tx.type === 'income'
-              ? currentAmount + tx.amount
-              : currentAmount - tx.amount;
-          currentAmount = updatedAmount;
-
-          // Create new balance entry
-          const transactionBalance = new balanceModel({
-            user_id: oldTransaction.user_id,
-            trans_id: tx._id,
-            balanceType: balanceType,
-            amount: parseFloat(updatedAmount.toFixed(2)),
-            date: tx.date,
-          });
-          await transactionBalance.save();
-
-          console.log(
-            `Updated balance for transaction ${tx._id}:`,
-            updatedAmount
-          );
-        }
-      }
-    }
-
-    console.log('Updated transaction:', updatedTransaction);
+    // Apply the impact to all FUTURE balances for the NEW source
+    await balanceModel.updateMany(
+      {
+        user_id: updatedTransaction.user_id,
+        balanceType: source,
+        date: { $gt: newDateISO },
+      },
+      { $inc: { amount: newImpact } }
+    );
 
     res.status(200).json({
       message: 'Transaction updated successfully',
