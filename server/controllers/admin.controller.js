@@ -1,12 +1,9 @@
-import transactionModel from '../models/transactions.model.js';
-import balanceModel from '../models/balance.model.js';
-
 import userModel from '../models/user.model.js';
 import transactionModel from '../models/transactions.model.js';
 import balanceModel from '../models/balance.model.js';
 
 // Get all users (Admin only)
-const getAllUserAdmin = async (req, res) => {
+const getAllUsersAdmin = async (req, res) => {
   try {
     const users = await userModel
       .find()
@@ -68,7 +65,7 @@ const updateUserRole = async (req, res) => {
   try {
     const { userId } = req.params;
     const { isAdmin } = req.body;
-
+    console.log(isAdmin);
     const user = await userModel
       .findByIdAndUpdate(userId, { isAdmin }, { new: true })
       .select('-password');
@@ -171,4 +168,10 @@ const getAppStats = async (req, res) => {
   }
 };
 
-export { getAllUserAdmin as getAllUsers, getUserById, updateUserRole, deleteUser, getAppStats };
+export {
+  getAllUsersAdmin,
+  getUserById,
+  updateUserRole,
+  deleteUser,
+  getAppStats,
+};

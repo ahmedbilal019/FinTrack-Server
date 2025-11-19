@@ -15,7 +15,7 @@ import {
   updateTransaction,
 } from '../controllers/transaction.controller.js';
 import {
-  getBankBalanceOverTime,
+  getBalanceOverTime,
   getTransactionReport,
 } from '../controllers/reports.controller.js';
 import {
@@ -42,11 +42,11 @@ router.get('/auth/verify', AuthenticateUser, (req, res) => {
 });
 
 // Admin Routes (add these to your existing routes)
-router.get('/admin/users', isAdmin, getAllUsers);
-router.get('/admin/users/:userId', isAdmin, getUserById);
-router.put('/admin/users/:userId/role', isAdmin, updateUserRole);
-router.delete('/admin/users/:userId', isAdmin, deleteUser);
-router.get('/admin/stats', isAdmin, getAppStats);
+router.get('/admin/users', isAdminAuth, getAllUsersAdmin);
+router.get('/admin/users/:userId', isAdminAuth, getUserById);
+router.put('/admin/users/:userId/role', isAdminAuth, updateUserRole);
+router.delete('/admin/users/:userId', isAdminAuth, deleteUser);
+router.get('/admin/stats', isAdminAuth, getAppStats);
 
 // User Routes Protected by Authentication Middleware
 router.get('/users', AuthenticateUser, getAllUsers);
@@ -87,9 +87,9 @@ router.get(
   getTransactionReport
 );
 router.get(
-  '/users/reports/balances/:user_id/:monthsNumber',
+  '/users/reports/balances/:user_id/:monthsNumber/:balanceType',
   AuthenticateUser,
-  getBankBalanceOverTime
+  getBalanceOverTime
 );
 
 // router.get(

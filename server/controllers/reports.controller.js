@@ -1,15 +1,15 @@
 import transactionModel from '../models/transactions.model.js';
 import balanceModel from '../models/balance.model.js';
 
-export const getBankBalanceOverTime = async (req, res) => {
+export const getBalanceOverTime = async (req, res) => {
   try {
-    const { user_id, maxLimit } = req.params;
+    const { user_id, maxLimit, balanceType } = req.params;
 
     // Get all balance entries for both wallet and bank within date range
     const balances = await balanceModel
       .find({
         user_id,
-        balanceType: 'bank',
+        balanceType: balanceType || 'bank',
       })
       .sort({ date: -1 })
       .limit(parseInt(maxLimit)); // Sort by date ascending
