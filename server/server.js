@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
 const allowedOrigins =
   process.env.NODE_ENV === 'production'
     ? [
-        'https://fintrack-app.vercel.app', // Your Vercel domain
+        'https://fin-track-teal-two.vercel.app', // Your Vercel domain
       ]
     : ['http://localhost:5173'];
 
